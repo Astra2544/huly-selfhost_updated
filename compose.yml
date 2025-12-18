@@ -7,6 +7,7 @@ services:
     volumes:
       - ./.huly.nginx:/etc/nginx/conf.d
 
+
     restart: unless-stopped
     networks:
       - huly_net
