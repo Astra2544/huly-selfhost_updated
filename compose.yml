@@ -1,25 +1,6 @@
 name: ${DOCKER_NAME:-huly}
 
 services:
-  traefik:
-    image: traefik:v2.11
-    container_name: ${DOCKER_NAME:-huly}-traefik
-    restart: unless-stopped
-    command:
-      - --log.level=DEBUG
-      - --api.dashboard=true
-      - --api.insecure=true
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=huly_net
-      - --entrypoints.web.address=:80
-    ports:
-      - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-18087}:80"
-      - "18088:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks: [huly_net]
-
   cockroach:
     image: cockroachdb/cockroach:latest-v24.2
     command: start-single-node --accept-sql-without-tls
@@ -93,12 +74,6 @@ services:
       - SECRET=${SECRET}
     restart: unless-stopped
     networks: [huly_net]
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=huly_net
-      - traefik.http.routers.huly-rekoni.entrypoints=web
-      - traefik.http.routers.huly-rekoni.rule=PathPrefix(`/_rekoni`)
-      - traefik.http.services.huly-rekoni.loadbalancer.server.port=4004
 
   stats:
     image: hardcoreeng/stats:${HULY_VERSION}
@@ -107,12 +82,6 @@ services:
       - SERVER_SECRET=${SECRET}
     restart: unless-stopped
     networks: [huly_net]
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=huly_net
-      - traefik.http.routers.huly-stats.entrypoints=web
-      - traefik.http.routers.huly-stats.rule=PathPrefix(`/_stats`)
-      - traefik.http.services.huly-stats.loadbalancer.server.port=4900
 
   fulltext:
     image: hardcoreeng/fulltext:${HULY_VERSION}
@@ -144,12 +113,6 @@ services:
       - QUEUE_CONFIG=redpanda:9092
     restart: unless-stopped
     networks: [huly_net]
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=huly_net
-      - traefik.http.routers.huly-transactor.entrypoints=web
-      - traefik.http.routers.huly-transactor.rule=PathPrefix(`/_transactor`)
-      - traefik.http.services.huly-transactor.loadbalancer.server.port=3333
 
   collaborator:
     image: hardcoreeng/collaborator:${HULY_VERSION}
@@ -161,12 +124,6 @@ services:
       - STORAGE_CONFIG=minio|minio?accessKey=minioadmin&secretKey=minioadmin
     restart: unless-stopped
     networks: [huly_net]
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=huly_net
-      - traefik.http.routers.huly-collaborator.entrypoints=web
-      - traefik.http.routers.huly-collaborator.rule=PathPrefix(`/_collaborator`)
-      - traefik.http.services.huly-collaborator.loadbalancer.server.port=3078
 
   account:
     image: hardcoreeng/account:${HULY_VERSION}
@@ -184,12 +141,6 @@ services:
       - QUEUE_CONFIG=redpanda:9092
     restart: unless-stopped
     networks: [huly_net]
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=huly_net
-      - traefik.http.routers.huly-accounts.entrypoints=web
-      - traefik.http.routers.huly-accounts.rule=PathPrefix(`/_accounts`)
-      - traefik.http.services.huly-accounts.loadbalancer.server.port=3000
 
   workspace:
     image: hardcoreeng/workspace:${HULY_VERSION}
@@ -223,14 +174,10 @@ services:
       - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE}
       - LAST_NAME_FIRST=${LAST_NAME_FIRST}
       - DESKTOP_UPDATES_CHANNEL=${DESKTOP_CHANNEL}
+    ports:
+      - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-18087}:8080"
     restart: unless-stopped
     networks: [huly_net]
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=huly_net
-      - traefik.http.routers.huly-ui.entrypoints=web
-      - traefik.http.routers.huly-ui.rule=PathPrefix(`/`)
-      - traefik.http.services.huly-ui.loadbalancer.server.port=8080
 
   kvs:
     image: hardcoreeng/hulykvs:${HULY_VERSION}
@@ -253,4 +200,3 @@ volumes:
 networks:
   huly_net:
     driver: bridge
-    name: huly_net
