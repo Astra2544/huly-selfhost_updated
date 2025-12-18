@@ -1,6 +1,21 @@
 name: ${DOCKER_NAME:-huly}
 
 services:
+  traefik:
+    image: traefik:v2.11
+    command:
+      - --log.level=INFO
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports:
+      - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-18087}:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - huly_net
+
   cockroach:
     image: cockroachdb/cockroach:latest-v24.2
     command: start-single-node --accept-sql-without-tls
@@ -44,8 +59,8 @@ services:
     environment:
       - REDPANDA_SUPERUSER_USERNAME=${REDPANDA_ADMIN_USER:-superadmin}
       - REDPANDA_SUPERUSER_PASSWORD=${REDPANDA_ADMIN_PWD:-panda_secret}
-    networks: [huly_net]
     restart: unless-stopped
+    networks: [huly_net]
 
   minio:
     image: minio/minio
@@ -157,19 +172,15 @@ services:
       - LAST_NAME_FIRST=${LAST_NAME_FIRST:-true}
       - DESKTOP_UPDATES_CHANNEL=${DESKTOP_CHANNEL:-selfhost}
     restart: unless-stopped
-    networks:
-      - huly_net
-      - proxy
+    networks: [huly_net]
     labels:
       - traefik.enable=true
 
-      # Base UI
+      # UI (catch-all)
       - traefik.http.routers.huly-ui.entrypoints=web
       - traefik.http.routers.huly-ui.rule=PathPrefix(`/`)
-      - traefik.http.routers.huly-ui.service=huly-ui
-      - traefik.http.services.huly-ui.loadbalancer.server.port=8080
-      # give API routes higher priority than /
       - traefik.http.routers.huly-ui.priority=1
+      - traefik.http.services.huly-ui.loadbalancer.server.port=8080
 
   fulltext:
     image: hardcoreeng/fulltext:${HULY_VERSION}
@@ -192,9 +203,7 @@ services:
       - PORT=4900
       - SERVER_SECRET=${SECRET}
     restart: unless-stopped
-    networks:
-      - huly_net
-      - proxy
+    networks: [huly_net]
     labels:
       - traefik.enable=true
       - traefik.http.routers.huly-stats.entrypoints=web
@@ -202,85 +211,60 @@ services:
       - traefik.http.routers.huly-stats.priority=100
       - traefik.http.services.huly-stats.loadbalancer.server.port=4900
 
-  rekoni-traefik:
-    image: alpine:3.20
-    command: sh -lc "sleep infinity"
-    networks:
-      - proxy
-      - huly_net
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.huly-rekoni.entrypoints=web
-      - traefik.http.routers.huly-rekoni.rule=PathPrefix(`/_rekoni`)
-      - traefik.http.routers.huly-rekoni.priority=100
-      - traefik.http.services.huly-rekoni.loadbalancer.server.port=4004
-    depends_on:
-      - rekoni
+  account-route:
+    image: traefik/whoami:v1.10
     restart: unless-stopped
-
-  account-traefik:
-    image: alpine:3.20
-    command: sh -lc "sleep infinity"
-    networks:
-      - proxy
-      - huly_net
+    networks: [huly_net]
     labels:
       - traefik.enable=true
       - traefik.http.routers.huly-accounts.entrypoints=web
       - traefik.http.routers.huly-accounts.rule=PathPrefix(`/_accounts`)
       - traefik.http.routers.huly-accounts.priority=100
       - traefik.http.services.huly-accounts.loadbalancer.server.port=3000
-    depends_on:
-      - account
-    restart: unless-stopped
 
-  transactor-traefik:
-    image: alpine:3.20
-    command: sh -lc "sleep infinity"
-    networks:
-      - proxy
-      - huly_net
+  rekoni-route:
+    image: traefik/whoami:v1.10
+    restart: unless-stopped
+    networks: [huly_net]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.huly-rekoni.entrypoints=web
+      - traefik.http.routers.huly-rekoni.rule=PathPrefix(`/_rekoni`)
+      - traefik.http.routers.huly-rekoni.priority=100
+      - traefik.http.services.huly-rekoni.loadbalancer.server.port=4004
+
+  transactor-route:
+    image: traefik/whoami:v1.10
+    restart: unless-stopped
+    networks: [huly_net]
     labels:
       - traefik.enable=true
       - traefik.http.routers.huly-transactor.entrypoints=web
       - traefik.http.routers.huly-transactor.rule=PathPrefix(`/_transactor`)
       - traefik.http.routers.huly-transactor.priority=100
       - traefik.http.services.huly-transactor.loadbalancer.server.port=3333
-    depends_on:
-      - transactor
-    restart: unless-stopped
 
-  collaborator-traefik:
-    image: alpine:3.20
-    command: sh -lc "sleep infinity"
-    networks:
-      - proxy
-      - huly_net
+  collaborator-route:
+    image: traefik/whoami:v1.10
+    restart: unless-stopped
+    networks: [huly_net]
     labels:
       - traefik.enable=true
       - traefik.http.routers.huly-collab.entrypoints=web
       - traefik.http.routers.huly-collab.rule=PathPrefix(`/_collaborator`)
       - traefik.http.routers.huly-collab.priority=100
       - traefik.http.services.huly-collab.loadbalancer.server.port=3078
-    depends_on:
-      - collaborator
-    restart: unless-stopped
 
-  minio-traefik:
-    image: alpine:3.20
-    command: sh -lc "sleep infinity"
-    networks:
-      - proxy
-      - huly_net
+  files-route:
+    image: traefik/whoami:v1.10
+    restart: unless-stopped
+    networks: [huly_net]
     labels:
       - traefik.enable=true
       - traefik.http.routers.huly-files.entrypoints=web
       - traefik.http.routers.huly-files.rule=PathPrefix(`/files`)
       - traefik.http.routers.huly-files.priority=100
       - traefik.http.services.huly-files.loadbalancer.server.port=9000
-    depends_on:
-      - minio
-    restart: unless-stopped
 
   kvs:
     image: hardcoreeng/hulykvs:${HULY_VERSION}
@@ -302,6 +286,4 @@ volumes:
 
 networks:
   huly_net:
-    name: huly_net
-  proxy:
-    external: true
+    driver: bridge
