@@ -45,8 +45,8 @@ services:
     restart: unless-stopped
     networks: [huly_net]
     ports:
-      - "19000:9000"   # optional: S3 API
-      - "19001:9001"   # optional: console
+      - "19000:9000"
+      - "19001:9001"
 
   elastic:
     image: elasticsearch:7.14.2
@@ -103,7 +103,7 @@ services:
       - SERVER_SECRET=${SECRET}
       - DB_URL=${CR_DB_URL}
       - STORAGE_CONFIG=minio|minio?accessKey=minioadmin&secretKey=minioadmin
-      - FRONT_URL=http://${HOST_ADDRESS}
+      - FRONT_URL=http://${HOST_ADDRESS}:${HTTP_PORT}
       - ACCOUNTS_URL=http://account:3000
       - FULLTEXT_URL=http://fulltext:4700
       - STATS_URL=http://stats:4900
@@ -135,9 +135,10 @@ services:
       - DB_URL=${CR_DB_URL}
       - TRANSACTOR_URL=ws://transactor:3333;ws://${HOST_ADDRESS}:19033
       - STORAGE_CONFIG=minio|minio?accessKey=minioadmin&secretKey=minioadmin
-      - FRONT_URL=http://${HOST_ADDRESS}
+      - FRONT_URL=http://${HOST_ADDRESS}:${HTTP_PORT}
       - STATS_URL=http://${HOST_ADDRESS}:19090
       - MODEL_ENABLED=*
+      # wichtig: extern erreichbar (kein /_accounts)
       - ACCOUNTS_URL=http://${HOST_ADDRESS}:19030
       - ACCOUNT_PORT=3000
       - QUEUE_CONFIG=redpanda:9092
@@ -167,13 +168,13 @@ services:
       - SERVER_PORT=8080
       - SERVER_SECRET=${SECRET}
 
-      # Direkt auf gepublishte Ports (kein /_proxy routing)
+      # Alles über echte Ports, die der Browser erreichen kann:
       - ACCOUNTS_URL=http://${HOST_ADDRESS}:19030
       - REKONI_URL=http://${HOST_ADDRESS}:19004
       - STATS_URL=http://${HOST_ADDRESS}:19090
       - COLLABORATOR_URL=ws://${HOST_ADDRESS}:19078
 
-      # Dummy-Integrationen, damit front nicht crasht
+      # Nur damit front nicht beim Start abbricht:
       - GMAIL_URL=http://${HOST_ADDRESS}:19088
       - CALENDAR_URL=http://${HOST_ADDRESS}:19095
       - TELEGRAM_URL=http://${HOST_ADDRESS}:19086
