@@ -12,7 +12,6 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=huly_net
-      - --providers.docker.useBindPortIP=true
       - --entrypoints.web.address=:80
     ports:
       - "${HTTP_BIND:-0.0.0.0}:${HTTP_PORT:-18087}:80"
@@ -96,7 +95,7 @@ services:
     networks: [huly_net]
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${DOCKER_NAME:-huly}_huly_net
+      - traefik.docker.network=huly_net
       - traefik.http.routers.huly-rekoni.entrypoints=web
       - traefik.http.routers.huly-rekoni.rule=PathPrefix(`/_rekoni`)
       - traefik.http.services.huly-rekoni.loadbalancer.server.port=4004
@@ -110,7 +109,7 @@ services:
     networks: [huly_net]
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${DOCKER_NAME:-huly}_huly_net
+      - traefik.docker.network=huly_net
       - traefik.http.routers.huly-stats.entrypoints=web
       - traefik.http.routers.huly-stats.rule=PathPrefix(`/_stats`)
       - traefik.http.services.huly-stats.loadbalancer.server.port=4900
@@ -147,7 +146,7 @@ services:
     networks: [huly_net]
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${DOCKER_NAME:-huly}_huly_net
+      - traefik.docker.network=huly_net
       - traefik.http.routers.huly-transactor.entrypoints=web
       - traefik.http.routers.huly-transactor.rule=PathPrefix(`/_transactor`)
       - traefik.http.services.huly-transactor.loadbalancer.server.port=3333
@@ -164,7 +163,7 @@ services:
     networks: [huly_net]
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${DOCKER_NAME:-huly}_huly_net
+      - traefik.docker.network=huly_net
       - traefik.http.routers.huly-collaborator.entrypoints=web
       - traefik.http.routers.huly-collaborator.rule=PathPrefix(`/_collaborator`)
       - traefik.http.services.huly-collaborator.loadbalancer.server.port=3078
@@ -187,7 +186,7 @@ services:
     networks: [huly_net]
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${DOCKER_NAME:-huly}_huly_net
+      - traefik.docker.network=huly_net
       - traefik.http.routers.huly-accounts.entrypoints=web
       - traefik.http.routers.huly-accounts.rule=PathPrefix(`/_accounts`)
       - traefik.http.services.huly-accounts.loadbalancer.server.port=3000
@@ -228,7 +227,7 @@ services:
     networks: [huly_net]
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${DOCKER_NAME:-huly}_huly_net
+      - traefik.docker.network=huly_net
       - traefik.http.routers.huly-ui.entrypoints=web
       - traefik.http.routers.huly-ui.rule=PathPrefix(`/`)
       - traefik.http.services.huly-ui.loadbalancer.server.port=8080
@@ -254,3 +253,4 @@ volumes:
 networks:
   huly_net:
     driver: bridge
+    name: huly_net
